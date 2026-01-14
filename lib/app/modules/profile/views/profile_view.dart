@@ -93,7 +93,7 @@ class ProfileView extends GetView<ProfileController> {
                 child: RenameProfileDialog(
                   profile: profile,
                   alias:
-                      controller.profilesMap[controller.currentProfile.value],
+                      controller.profilesMap[controller.currentProfile.value] ?? "",
                   context: context,
                 ),
               ),
@@ -111,7 +111,7 @@ class ProfileView extends GetView<ProfileController> {
               Get.toNamed(Routes.MANAGE_TASK_SERVER);
             },
             (profile) async {
-              String tasks;
+              String tasks = "";
               if (controller.profilesWidget.getMode(profile) == "TW2") {
                 tasks =
                     controller.profilesWidget.getStorage(profile).data.export();
@@ -223,7 +223,7 @@ class ProfileView extends GetView<ProfileController> {
               }
             },
             (profile) {
-              String? profileName = controller.profilesMap[profile];
+              final String? profileName = controller.profilesMap[profile] ?? "Unnamed Profile";
               controller.profilesMap.remove(profile);
               showDialog(
                 context: context,
