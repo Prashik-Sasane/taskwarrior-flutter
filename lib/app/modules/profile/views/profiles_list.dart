@@ -43,7 +43,7 @@ class ProfilesList extends StatelessWidget {
           itemBuilder: (context, index) {
             List pnames = profilesMap.values.toList();
             List pid = profilesMap.keys.toList();
-            final item = pnames[index];
+            final String item = pnames[index] ?? "New Alias";
             final profileId =
                 pid[index]; // Store pid[index] in a variable for clarity
 
