@@ -49,8 +49,6 @@ class HomeController extends GetxController {
   late Storage storage;
   final RxBool pendingFilter = false.obs;
   final RxBool waitingFilter = false.obs;
-  final RxBool deletedFilter = false.obs;
-
   final RxString projectFilter = ''.obs;
   final RxBool tagUnion = false.obs;
   final RxString selectedSort = ''.obs;
@@ -91,13 +89,18 @@ class HomeController extends GetxController {
     getUniqueProjects();
     _loadTaskChampion();
     fetchTasksFromDB();
+
+    ever(AppSettings.use24HourFormatRx, (_) {
+      _refreshTasks();
+      update();
+    });
+
     ever(taskReplica, (_) {
       if (taskReplica.value) refreshReplicaTaskList();
     });
     everAll([
       pendingFilter,
       waitingFilter,
-      deletedFilter,
       projectFilter,
       tagUnion,
       selectedSort,
@@ -213,101 +216,92 @@ class HomeController extends GetxController {
   }
 
   void _profileSet() {
-    final bool isPending = Query(storage.tabs.tab()).getPendingFilter();
-
-    pendingFilter.value = isPending;
-    deletedFilter.value = false;
-    waitingFilter.value = Query(storage.tabs.tab()).getWaitingFilter();
-
+    pendingFilter.value = Query(storage.tabs.tab()).getPendingFilter();
+    if (!Query(storage.tabs.tab()).getWaitingFilter()) {
+      waitingFilter.value = Query(storage.tabs.tab()).getWaitingFilter();
+    } else {
+      Query(storage.tabs.tab()).toggleWaitingFilter();
+      waitingFilter.value = Query(storage.tabs.tab()).getWaitingFilter();
+    }
     projectFilter.value = Query(storage.tabs.tab()).projectFilter();
     tagUnion.value = Query(storage.tabs.tab()).tagUnion();
     selectedSort.value = Query(storage.tabs.tab()).getSelectedSort();
-    selectedTags.assignAll(Query(storage.tabs.tab()).getSelectedTags());
+    selectedTags.addAll(Query(storage.tabs.tab()).getSelectedTags());
 
     _refreshTasks();
     pendingTags.value = _pendingTags();
     projects.value = _projects();
-
     if (searchVisible.value) {
       toggleSearch();
     }
   }
 
   void _refreshTasks() {
-    List<Task> baseTasks;
-
     if (pendingFilter.value) {
-      baseTasks = storage.data.pendingData();
-    } else if (deletedFilter.value) {
-      baseTasks = storage.data.deletedData();
+      queriedTasks.value = storage.data
+          .pendingData()
+          .where((task) => task.status == 'pending')
+          .toList();
     } else {
-      baseTasks = storage.data.completedData();
-      if (taskchampion.value || taskReplica.value) {
-    baseTasks = baseTasks.where((task) => task.status != 'deleted').toList();
-  }
+      queriedTasks.value = storage.data.completedData();
     }
 
-    queriedTasks.assignAll(baseTasks);
-
     if (waitingFilter.value) {
-      final now = DateTime.now();
-      queriedTasks.value = queriedTasks.where((task) {
-        return task.wait != null && task.wait!.isAfter(now);
-      }).toList();
+      var currentTime = DateTime.now();
+      queriedTasks.value = queriedTasks
+          .where((task) => task.wait != null && task.wait!.isAfter(currentTime))
+          .toList();
     }
 
     if (projectFilter.value.isNotEmpty) {
       queriedTasks.value = queriedTasks.where((task) {
-        return task.project?.startsWith(projectFilter.value) ?? false;
+        if (task.project == null) {
+          return false;
+        } else {
+          return task.project!.startsWith(projectFilter.value);
+        }
       }).toList();
     }
 
     queriedTasks.value = queriedTasks.where((task) {
-      final tags = task.tags?.toSet() ?? <String>{};
-
-      if (selectedTags.isEmpty) return true;
-
+      var tags = task.tags?.toSet() ?? {};
       if (tagUnion.value) {
-        return selectedTags.any((tag) {
-          final clean = tag.substring(1);
-          return tag.startsWith('+')
-              ? tags.contains(clean)
-              : !tags.contains(clean);
-        });
+        if (selectedTags.isEmpty) {
+          return true;
+        }
+        return selectedTags.any((tag) => (tag.startsWith('+'))
+            ? tags.contains(tag.substring(1))
+            : !tags.contains(tag.substring(1)));
       } else {
-        return selectedTags.every((tag) {
-          final clean = tag.substring(1);
-          return tag.startsWith('+')
-              ? tags.contains(clean)
-              : !tags.contains(clean);
-        });
+        return selectedTags.every((tag) => (tag.startsWith('+'))
+            ? tags.contains(tag.substring(1))
+            : !tags.contains(tag.substring(1)));
       }
     }).toList();
 
-    if (selectedSort.value.isNotEmpty) {
-      final column =
-          selectedSort.value.substring(0, selectedSort.value.length - 1);
-      final ascending = selectedSort.value.endsWith('+');
-
-      queriedTasks.sort((a, b) {
-        final result = column == 'id'
-            ? a.id!.compareTo(b.id!)
-            : compareTasks(column)(a, b);
-        return ascending ? result : -result;
-      });
-    }
+    var sortColumn =
+        selectedSort.value.substring(0, selectedSort.value.length - 1);
+    var ascending = selectedSort.value.endsWith('+');
+    queriedTasks.sort((a, b) {
+      int result;
+      if (sortColumn == 'id') {
+        result = a.id!.compareTo(b.id!);
+      } else {
+        result = compareTasks(sortColumn)(a, b);
+      }
+      return ascending ? result : -result;
+    });
 
     searchedTasks.assignAll(queriedTasks);
-    if (searchVisible.value && searchController.text.isNotEmpty) {
-      final term = searchController.text.toLowerCase();
-      searchedTasks.value = searchedTasks.where((task) {
-        return task.description.toLowerCase().contains(term) ||
-            (task.annotations?.asList() ?? []).any(
-              (a) => a.description.toLowerCase().contains(term),
-            );
-      }).toList();
+    var searchTerm = searchController.text;
+    if (searchVisible.value) {
+      searchedTasks.value = searchedTasks
+          .where((task) =>
+              task.description.contains(searchTerm) ||
+              (task.annotations?.asList() ?? []).any(
+                  (annotation) => annotation.description.contains(searchTerm)))
+          .toList();
     }
-
     pendingTags.value = _pendingTags();
     projects.value = _projects();
   }
@@ -383,23 +377,6 @@ class HomeController extends GetxController {
     }
     Query(storage.tabs.tab()).toggleTagFilter(tag);
     selectedTags.addAll(Query(storage.tabs.tab()).getSelectedTags());
-    _refreshTasks();
-  }
-
-  void toggleStatusFilter() {
-    if (pendingFilter.value) {
-      // Pending → Completed
-      pendingFilter.value = false;
-      deletedFilter.value = false;
-    } else if (!pendingFilter.value && !deletedFilter.value) {
-      // Completed → Deleted
-      deletedFilter.value = true;
-    } else {
-      // Deleted → Pending
-      pendingFilter.value = true;
-      deletedFilter.value = false;
-    }
-
     _refreshTasks();
   }
 
@@ -591,7 +568,6 @@ class HomeController extends GetxController {
   RxBool syncOnStart = false.obs;
   RxBool syncOnTaskCreate = false.obs;
   RxBool delaytask = false.obs;
-  RxBool change24hr = false.obs;
   RxBool taskchampion = false.obs;
   RxBool taskReplica = false.obs;
 
@@ -640,7 +616,6 @@ class HomeController extends GetxController {
     var filters = Filters(
       pendingFilter: pendingFilter.value,
       waitingFilter: waitingFilter.value,
-      deletedFilter: deletedFilter.value,
       togglePendingFilter: togglePendingFilter,
       toggleWaitingFilter: toggleWaitingFilter,
       projects: projects,
