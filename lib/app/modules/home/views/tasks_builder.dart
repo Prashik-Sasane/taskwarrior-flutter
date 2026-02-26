@@ -242,8 +242,8 @@ class TasksBuilder extends StatelessWidget {
                               child: InkWell(
                                 splashColor: tColors.secondaryBackgroundColor,
                                 onTap: () {
-                                  Get.toNamed(Routes.DETAIL_ROUTE,
-                                      arguments: ["uuid", task.uuid]);
+                                  Get.toNamed(Routes.TASK_INFO,
+                                     arguments: ["uuid", task.uuid]);
                                 },
                                 // child: Text(task.entry.toString()),
                                 // onTap: () => Navigator.push(
@@ -271,8 +271,8 @@ class TasksBuilder extends StatelessWidget {
                             child: InkWell(
                               splashColor: tColors.secondaryBackgroundColor,
                               onTap: () {
-                                Get.toNamed(Routes.DETAIL_ROUTE,
-                                    arguments: ["uuid", task.uuid]);
+                                Get.toNamed(Routes.TASK_INFO,
+                                   arguments: ["uuid", task.uuid]);
                               },
                               // child: Text(task.entry.toString()),
                               child: TaskListItem(
