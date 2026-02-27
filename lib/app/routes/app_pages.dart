@@ -26,7 +26,8 @@ import '../modules/splash/bindings/splash_binding.dart';
 import '../modules/splash/views/splash_view.dart';
 import '../modules/taskc_details/bindings/taskc_details_binding.dart';
 import '../modules/taskc_details/views/taskc_details_view.dart';
-
+import '../modules/infoRoute/views/task_info_view.dart';
+import '../modules/infoRoute/bindings/tasks_info_route_binding.dart';
 // ignore_for_file: constant_identifier_names
 
 part 'app_routes.dart';
@@ -61,6 +62,11 @@ class AppPages {
       name: _Paths.DETAIL_ROUTE,
       page: () => const DetailRouteView(),
       binding: DetailRouteBinding(),
+    ),
+    GetPage(
+      name: _Paths.TASK_INFO_ROUTE,
+      page: () => const TasksInfoView(),
+      binding: TasksInfoRouteBuilding(),
     ),
     GetPage(
       name: _Paths.PROFILE,
