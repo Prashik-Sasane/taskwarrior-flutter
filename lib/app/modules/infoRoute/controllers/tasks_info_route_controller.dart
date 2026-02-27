@@ -7,6 +7,7 @@ import 'package:taskwarrior/app/models/json/task.dart';
 class TasksInfoRouteController extends GetxController {
   late String uuid;
   var task = Rxn<Task>();
+
   @override
   void onInit() {
      super.onInit();
@@ -16,14 +17,9 @@ class TasksInfoRouteController extends GetxController {
     loadTask();
   }
   void loadTask() {
-    var storageWidget = Get.find<HomeController>();
-    var loadedTask = storageWidget.getTask(uuid);
-    if (loadedTask != null) {
-      task.value = loadedTask;
-    } else {
-      // Handle case where task is not found, e.g., show an error message
-      print('Task with UUID $uuid not found.');
-    }
+   final homeController = Get.find<HomeController>();
+   final loadedTask = homeController.getTask(uuid);
+    task.value = loadedTask;
   }
 
 }
