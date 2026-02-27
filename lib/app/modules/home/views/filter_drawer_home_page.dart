@@ -231,8 +231,7 @@ class FilterDrawer extends StatelessWidget {
                 color: Color.fromARGB(0, 48, 46, 46),
               ),
               Visibility(
-                visible: !homeController.taskchampion.value ||
-                    homeController.taskReplica.value,
+                visible: true,
                 child: Container(
                   key: homeController.filterTagKey,
                   width: MediaQuery.of(context).size.width * 1,

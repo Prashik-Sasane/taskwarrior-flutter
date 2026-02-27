@@ -195,9 +195,9 @@ class HomeController extends GetxController {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     taskchampion.value = prefs.getBool('settings_taskc') ?? false;
     taskReplica.value = prefs.getBool('settings_taskr_repl') ?? false;
-
     if (taskchampion.value || taskReplica.value) {
       deletedFilter.value = false;
+
     }
   }
 
