@@ -14,7 +14,6 @@ import 'package:taskwarrior/app/utils/app_settings/app_settings.dart';
 import 'package:taskwarrior/app/utils/constants/constants.dart';
 import 'package:taskwarrior/app/utils/language/sentence_manager.dart';
 import 'package:taskwarrior/app/utils/taskfunctions/add_task_dialog_utils.dart';
-import 'package:taskwarrior/app/utils/taskfunctions/tags.dart';
 import 'package:taskwarrior/app/utils/taskfunctions/taskparser.dart';
 import 'package:taskwarrior/app/utils/themes/theme_extension.dart';
 import 'package:taskwarrior/app/v3/champion/replica.dart';
@@ -32,6 +31,8 @@ class AddTaskBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint(
+        "Building Add Task Bottom Sheet for ${forTaskC ? "TaskC" : forReplica ? "Replica" : "Normal Task"}");
     const padding = 12.0;
     return Padding(
       padding: EdgeInsets.only(
@@ -216,7 +217,7 @@ class AddTaskBottomSheet extends StatelessWidget {
   }
 
   Widget buildTagsInput(BuildContext context) => AddTaskTagsInput(
-        suggestions: tagSet(homeController.storage.data.allData()),
+        suggestions: homeController.allTagsInCurrentTasks,
         onTagsChanges: (p0) => homeController.tags.value = p0,
       );
 
@@ -224,7 +225,8 @@ class AddTaskBottomSheet extends StatelessWidget {
         onDateChanges: (List<DateTime?> p0) {
           homeController.selectedDates.value = p0;
         },
-        onlyDueDate: forTaskC || forReplica,
+        allowedIndexes: forReplica ? [0, 1] : [0, 1, 2, 3],
+        onlyDueDate: forTaskC,
       );
 
   Widget buildPriority(BuildContext context) => Column(
@@ -307,6 +309,11 @@ class AddTaskBottomSheet extends StatelessWidget {
       );
 
   Set<String> getProjects() {
+    if (homeController.taskReplica.value) {
+      return homeController.tasksFromReplica
+          .map((task) => task.project ?? '')
+          .toSet();
+    }
     Iterable<Task> tasks = homeController.storage.data.allData();
     return tasks
         .where((task) => task.project != null)
