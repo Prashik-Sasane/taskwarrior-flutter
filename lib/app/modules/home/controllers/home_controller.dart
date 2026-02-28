@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:home_widget/home_widget.dart';
 import 'package:loggy/loggy.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:taskwarrior/app/models/filters.dart';
 
@@ -17,9 +16,7 @@ import 'package:taskwarrior/app/models/storage.dart';
 import 'package:taskwarrior/app/models/storage/client.dart';
 import 'package:taskwarrior/app/models/tag_meta_data.dart';
 import 'package:taskwarrior/app/modules/home/controllers/widget.controller.dart';
-import 'package:taskwarrior/app/modules/home/views/add_task_bottom_sheet_new.dart';
 import 'package:taskwarrior/app/modules/splash/controllers/splash_controller.dart';
-import 'package:taskwarrior/app/routes/app_pages.dart';
 import 'package:taskwarrior/app/services/deep_link_service.dart';
 import 'package:taskwarrior/app/services/tag_filter.dart';
 import 'package:taskwarrior/app/tour/filter_drawer_tour.dart';
@@ -39,7 +36,6 @@ import 'package:taskwarrior/app/v3/db/task_database.dart';
 import 'package:taskwarrior/app/v3/db/update.dart';
 import 'package:taskwarrior/app/v3/models/task.dart';
 import 'package:taskwarrior/app/v3/net/fetch.dart';
-import 'package:taskwarrior/rust_bridge/api.dart';
 import 'package:textfield_tags/textfield_tags.dart';
 import 'package:taskwarrior/app/utils/themes/theme_extension.dart';
 import 'package:tutorial_coach_mark/tutorial_coach_mark.dart';
@@ -67,6 +63,7 @@ class HomeController extends GetxController {
   late RxBool serverCertExists;
   final Rx<SupportedLanguage> selectedLanguage = SupportedLanguage.english.obs;
   final ScrollController scrollController = ScrollController();
+  final FocusNode searchFocusNode = FocusNode();
   final RxBool showbtn = false.obs;
   late TaskDatabase taskdb;
   var tasks = <TaskForC>[].obs;
@@ -564,6 +561,11 @@ class HomeController extends GetxController {
 
   void toggleSearch() {
     searchVisible.value = !searchVisible.value;
+    if (searchVisible.value) {
+      Future.delayed(const Duration(milliseconds: 300), () {
+        searchFocusNode.requestFocus();
+      });
+    }
     if (!searchVisible.value) {
       searchedTasks.assignAll(queriedTasks);
       searchController.text = '';
@@ -634,15 +636,47 @@ class HomeController extends GetxController {
 
   isNeededtoSyncOnStart(BuildContext context) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
-    bool? value;
-    value = prefs.getBool('sync-onStart') ?? false;
-    String? clientId, encryptionSecret;
-    clientId = await CredentialsStorage.getClientId();
-    encryptionSecret = await CredentialsStorage.getEncryptionSecret();
-    if (value) {
-      synchronize(context, false);
-      refreshTasks(clientId!, encryptionSecret!);
-    } else {}
+    final bool syncEnabled = prefs.getBool('sync-onStart') ?? false;
+    if (!syncEnabled) return;
+
+    final String? clientId = await CredentialsStorage.getClientId();
+    final String? encryptionSecret =
+        await CredentialsStorage.getEncryptionSecret();
+
+    try {
+      isRefreshing.value = true;
+      if (taskReplica.value) {
+        if (clientId != null && encryptionSecret != null) {
+          await refreshReplicaTasks();
+        }
+      } else if (taskchampion.value) {
+        if (clientId != null && encryptionSecret != null) {
+          await refreshTasks(clientId, encryptionSecret);
+        }
+      } else {
+        await synchronize(context, false);
+      }
+      if (context.mounted) {
+        final tColors =
+            Theme.of(context).extension<TaskwarriorColorTheme>()!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Sync Completed',
+              style: TextStyle(
+                color: tColors.primaryTextColor,
+              ),
+            ),
+            backgroundColor: tColors.primaryBackgroundColor,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error during sync on start: $e');
+    } finally {
+      isRefreshing.value = false;
+    }
   }
 
   RxBool syncOnStart = false.obs;
@@ -866,8 +900,22 @@ class HomeController extends GetxController {
     });
   }
 
-  late RxString uuid = "".obs;
-  late RxBool isHomeWidgetTaskTapped = false.obs;
+  Iterable<String> get allTagsInCurrentTasks {
+    if (taskReplica.value) {
+      var tagSet = <String>{};
+      for (var task in tasksFromReplica) {
+        if (task.tags != null) {
+          tagSet.addAll(task.tags!);
+        }
+      }
+      var sortedTags = tagSet.toList()..sort();
+      return sortedTags;
+    }
+    return tagSet(storage.data.allData());
+  }
+
+  RxString uuid = "".obs;
+  RxBool isHomeWidgetTaskTapped = false.obs;
 
   // void handleHomeWidgetClicked() async {
   //   Uri? uri = await HomeWidget.initiallyLaunchedFromHomeWidget();
@@ -913,4 +961,9 @@ class HomeController extends GetxController {
   //           forReplica: taskReplica.value));
   //   Get.dialog(showDialog);
   // }
+  @override
+  void onClose() {
+    searchFocusNode.dispose();
+    super.onClose();
+  }
 }
