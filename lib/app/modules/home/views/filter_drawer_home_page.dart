@@ -231,8 +231,7 @@ class FilterDrawer extends StatelessWidget {
                 color: Color.fromARGB(0, 48, 46, 46),
               ),
               Visibility(
-                visible: !homeController.taskchampion.value ||
-                    homeController.taskReplica.value,
+                visible: true,
                 child: Container(
                   key: homeController.filterTagKey,
                   width: MediaQuery.of(context).size.width * 1,
@@ -249,6 +248,7 @@ class FilterDrawer extends StatelessWidget {
                       const Divider(
                         color: Color.fromARGB(0, 48, 46, 46),
                       ),
+                      const SizedBox(height: 12),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 0.0),
                         child: Text(
@@ -285,6 +285,7 @@ class FilterDrawer extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
               // Visibility(
               //   visible: !homeController.taskchampion.value &&
               //       !homeController.taskReplica.value,
@@ -292,7 +293,6 @@ class FilterDrawer extends StatelessWidget {
               //     color: Color.fromARGB(0, 48, 46, 46),
               //   ),
               // ),
-              const SizedBox(height: 16),
               Container(
                 key: homeController.sortByKey,
                 width: MediaQuery.of(context).size.width * 1,

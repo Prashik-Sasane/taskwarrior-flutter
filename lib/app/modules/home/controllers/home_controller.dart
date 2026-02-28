@@ -193,9 +193,9 @@ class HomeController extends GetxController {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     taskchampion.value = prefs.getBool('settings_taskc') ?? false;
     taskReplica.value = prefs.getBool('settings_taskr_repl') ?? false;
-
     if (taskchampion.value || taskReplica.value) {
       deletedFilter.value = false;
+
     }
   }
 
@@ -204,7 +204,6 @@ class HomeController extends GetxController {
     await Replica.sync();
     tasksFromReplica.value = await Replica.getAllTasksFromReplica();
     debugPrint("Tasks from Replica: ${tasks.length}");
-    _refreshTasks();
   }
 
   void addListenerToScrollController() {
@@ -324,6 +323,8 @@ class HomeController extends GetxController {
 
     pendingTags.value = _pendingTags();
     projects.value = _projects();
+
+    debugPrint("Replica count: ${tasksFromReplica.length}");
   }
 
   
