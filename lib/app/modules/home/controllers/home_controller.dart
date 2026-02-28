@@ -162,6 +162,7 @@ class HomeController extends GetxController {
     if (!taskReplica.value) return;
     tasksFromReplica.value = await Replica.getAllTasksFromReplica();
     debugPrint("Tasks from Replica: ${tasks.length}");
+    _refreshTasks();
   }
 
   Future<void> refreshTasks(String clientId, String encryptionSecret) async {
@@ -206,6 +207,8 @@ class HomeController extends GetxController {
     await Replica.sync();
     tasksFromReplica.value = await Replica.getAllTasksFromReplica();
     debugPrint("Tasks from Replica: ${tasks.length}");
+    debugPrint("Before refresh: ${tasksFromReplica.length}");
+    _refreshTasks();
   }
 
   void addListenerToScrollController() {
@@ -325,6 +328,8 @@ class HomeController extends GetxController {
 
     pendingTags.value = _pendingTags();
     projects.value = _projects();
+
+    debugPrint("Replica count: ${tasksFromReplica.length}");
   }
 
   
