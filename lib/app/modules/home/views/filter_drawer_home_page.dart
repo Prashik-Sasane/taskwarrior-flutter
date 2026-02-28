@@ -285,13 +285,14 @@ class FilterDrawer extends StatelessWidget {
                   ),
                 ),
               ),
-              Visibility(
-                visible: !homeController.taskchampion.value &&
-                    !homeController.taskReplica.value,
-                child: const Divider(
-                  color: Color.fromARGB(0, 48, 46, 46),
-                ),
-              ),
+              // Visibility(
+              //   visible: !homeController.taskchampion.value &&
+              //       !homeController.taskReplica.value,
+              //   child: const Divider(
+              //     color: Color.fromARGB(0, 48, 46, 46),
+              //   ),
+              // ),
+              const SizedBox(height: 16),
               Container(
                 key: homeController.sortByKey,
                 width: MediaQuery.of(context).size.width * 1,
