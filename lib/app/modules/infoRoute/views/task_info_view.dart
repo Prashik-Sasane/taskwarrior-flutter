@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+
 import 'package:built_collection/built_collection.dart';
 import 'package:taskwarrior/app/modules/detailRoute/bindings/detail_route_binding.dart';
 import 'package:taskwarrior/app/modules/detailRoute/views/detail_route_view.dart';
@@ -14,6 +15,8 @@ import 'package:taskwarrior/app/utils/gen/fonts.gen.dart';
 import 'package:taskwarrior/app/utils/app_settings/app_settings.dart';
 import 'package:taskwarrior/app/modules/infoRoute/controllers/tasks_info_route_controller.dart';
 import 'package:taskwarrior/app/utils/taskfunctions/urgency.dart';
+import 'package:taskwarrior/app/modules/taskc_details/bindings/taskc_details_binding.dart';
+import 'package:taskwarrior/app/modules/taskc_details/views/taskc_details_view.dart';
 
 class TasksInfoView extends GetView<TasksInfoRouteController> {
   const TasksInfoView({super.key});
@@ -56,14 +59,59 @@ class TasksInfoView extends GetView<TasksInfoRouteController> {
               ),
               child: IconButton(
                 icon: Icon(Icons.add, color: Colors.black,),
-                onPressed: () async{
-                  await Get.to(
+                // onPressed: () async{
+                //   final homeController = Get.find<HomeController>();
+                //   if (homeController.taskchampion.value) {
+                    
+                //     Get.to(
+                //       () => TaskcDetailsView(),
+                //       binding: TaskcDetailsBinding(),
+                //       arguments: task,
+                //     );
+                //   } else{
+                //     Get.to(
+                //     () => DetailRouteView(),
+                //     binding: DetailRouteBinding(),
+                //     arguments: ["uuid", task.uuid],
+                //   );
+                //   }
+                //   await controller.loadTask();
+                //  },
+                onPressed: () async {
+                final homeController = Get.find<HomeController>();
+                if (homeController.taskchampion.value) {
+                  final dbTask =
+                      await homeController.taskdb.getTaskByUuid(controller.uuid);
+                  if (dbTask != null) {
+                    await Get.to(
+                      () => TaskcDetailsView(),
+                      binding: TaskcDetailsBinding(),
+                      arguments: dbTask,
+                    );
+                    // await controller.loadTask();
+                  }
+                } 
+                else if (homeController.taskReplica.value) {
+                  final replicaTask = homeController.tasksFromReplica
+                      .firstWhereOrNull((t) => t.uuid == controller.uuid);
+                  if (replicaTask != null) {
+                    await Get.to(
+                      () => TaskcDetailsView(),
+                      binding: TaskcDetailsBinding(),
+                      arguments: replicaTask,
+                    );
+                    // await controller.loadTask();
+                  }
+                } 
+                else {
+                  Get.to(
                     () => DetailRouteView(),
                     binding: DetailRouteBinding(),
                     arguments: ["uuid", controller.uuid],
                   );
-                  controller.loadTask();
-                 },
+                }
+                await controller.loadTask();
+               }
                ),
              ),
             ),
@@ -296,7 +344,7 @@ Widget _richInfo(
             child: const Text("Cancel"),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async{
               final text = textController.text.trim();
               if (text.isEmpty) {
                 Get.back();
@@ -317,9 +365,21 @@ Widget _richInfo(
                               a..description = text);
                 }
               });
-              homeController.mergeTask(updatedTask);
-              controller.task.value = updatedTask;
-              Get.back();
+              // homeController.mergeTask(updatedTask);
+              final homeController = Get.find<HomeController>();
+                if (homeController.taskReplica.value) {
+                await homeController.mergeReplica(updatedTask);
+              } 
+              else if (homeController.taskchampion.value) {
+                final taskForC =
+                    homeController.convertTaskToTaskForC(updatedTask);
+                await homeController.mergeTaskChampion(taskForC);
+              } 
+              else {
+                homeController.mergeTask(updatedTask);
+              }
+               Get.back();
+              await controller.loadTask();
             },
             child: const Text("Save"),
           ),

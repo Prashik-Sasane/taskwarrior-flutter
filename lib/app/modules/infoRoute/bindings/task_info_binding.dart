@@ -5,7 +5,7 @@ import 'package:get/get.dart';
 import 'package:taskwarrior/app/modules/infoRoute/controllers/tasks_info_route_controller.dart';
 // import 'package:taskwarrior/app/modules/infoRoute/views/tasks_info_view.dart';
 
-class TasksInfoRouteBuilding extends Bindings {
+class TasksInfoRouteBinding extends Bindings {
   @override
   void dependencies() {
     Get.lazyPut<TasksInfoRouteController>(

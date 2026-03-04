@@ -67,7 +67,7 @@ class AppPages {
     GetPage(
       name: _Paths.TASK_INFO_ROUTE,
       page: () => const TasksInfoView(),
-      binding: TasksInfoRouteBuilding(),
+      binding: TasksInfoRouteBinding(),
     ),
     GetPage(
       name: _Paths.PROFILE,
