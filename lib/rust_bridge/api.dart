@@ -11,6 +11,19 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 Future<String> getAllTasksJson({required String taskdbDirPath}) =>
     RustLib.instance.api.crateApiGetAllTasksJson(taskdbDirPath: taskdbDirPath);
 
+Future<String> queryTask(
+        {required String taskdbDirPath,
+        String? uuid,
+        String? status,
+        String? tags,
+        String? project}) =>
+    RustLib.instance.api.crateApiQueryTask(
+        taskdbDirPath: taskdbDirPath,
+        uuid: uuid,
+        status: status,
+        tags: tags,
+        project: project);
+
 Future<int> deleteTask(
         {required String uuidSt, required String taskdbDirPath}) =>
     RustLib.instance.api

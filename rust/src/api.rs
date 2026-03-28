@@ -57,6 +57,79 @@ fn get_all_tasks(taskdb_dir_path: String) -> Vec<HashMap<String, String>> {
 }
 
 #[frb]
+pub fn query_task(
+    taskdb_dir_path: String,
+    uuid: Option<String>,
+    status: Option<String>,
+    tags: Option<String>,
+    project: Option<String>,
+) -> Result<String, taskchampion::Error> {
+    let all_tasks = get_all_tasks(taskdb_dir_path);
+    let mut filtered_tasks: Vec<HashMap<String, String>> = Vec::new();
+
+    for task in all_tasks {
+        // Uuid check
+        if let Some(ref u) = uuid {
+            if task.get("uuid") != Some(u) {
+                continue;
+            }
+        }
+
+        // Status check
+        if let Some(ref s) = status {
+            if task.get("status") != Some(s) {
+                continue;
+            }
+        }
+
+        // Project check
+        if let Some(ref p) = project {
+            if task.get("project") != Some(p) {
+                continue;
+            }
+        }
+
+        // Tags check
+        if let Some(ref t) = tags {
+            let task_tags = task.get("tags").map(|s| s.as_str()).unwrap_or("");
+            let mut valid = true;
+
+            for part in t.split_whitespace() {
+                if part.starts_with('+') {
+                    let tag = &part[1..];
+                    if !task_tags.contains(tag) {
+                        valid = false;
+                        break;
+                    }
+                } else if part.starts_with('-') {
+                    let tag = &part[1..];
+                    if task_tags.contains(tag) {
+                        valid = false;
+                        break;
+                    }
+                } else {
+                    if !task_tags.contains(part) {
+                        valid = false;
+                        break;
+                    }
+                }
+            }
+
+            if !valid {
+                continue;
+            }
+        }
+
+        filtered_tasks.push(task);
+    }
+
+    let json = serde_json::to_string(&filtered_tasks)
+        .map_err(|e| taskchampion::Error::Other(anyhow::anyhow!(e)))?;
+
+    Ok(json)
+}
+
+#[frb]
 pub fn delete_task(uuid_st: String, taskdb_dir_path: String) -> i8 {
     let taskdb_dir = PathBuf::from(taskdb_dir_path);
     let storage = StorageConfig::OnDisk {

@@ -107,6 +107,37 @@ class Replica {
     }
     return tasks;
   }
+  
+  // The Query task with different attribute
+  // uuid, status, project, tags filter
+  static Future<List<TaskForReplica>> queryTasksFromReplica({
+  String? uuid,
+  String? status,
+  String? project,
+  String? tags,
+ }) async {
+  var path = await getReplicaPath();
+
+  try {
+    var res = await queryTask(
+      taskdbDirPath: path,
+      uuid: uuid,
+      status: status,
+      project: project,
+      tags: tags,
+    );
+
+    var decoded = jsonDecode(res);
+
+    return List<TaskForReplica>.from(
+      decoded.map((e) =>
+          TaskForReplica.fromJson(Map<String, dynamic>.from(e))),
+    );
+  } catch (e) {
+    debugPrint("Error in queryTasksFromReplica: $e");
+    return [];
+  }
+}
 
   static Future<void> sync() async {
     var taskdbDirPath = await getReplicaPath();
